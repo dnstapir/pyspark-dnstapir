@@ -1,0 +1,52 @@
+[project]
+name = "pyspark_dnstapir"
+dynamic = ["version"]
+description = "DNS TAPIR Python Analysis/PySpark Library"
+authors = [{name="DNS TAPIR"}]
+readme = "README.md"
+requires-python = ">=3.12,<4.0"
+dependencies = [
+    "httpx2[http2]>=2.16.0",
+]
+
+[project.urls]
+repository = "https://github.com/dnstapir/pyspark-dnstapir.git"
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "pytest-ruff>=0.5",
+    "ruff>=0.17.3",
+]
+
+[build-system]
+requires = ["hatchling", "uv-dynamic-versioning"]
+build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "uv-dynamic-versioning"
+
+[tool.ruff]
+line-length = 120
+
+[tool.ruff.lint]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
+ignore = ["E501", "I001"]
+
+[tool.ruff.lint.isort]
+force-sort-within-sections = false
+combine-as-imports = true
+split-on-trailing-comma = false
