@@ -29,7 +29,7 @@ def add_total_query_count_column(df: DataFrame, from_rcode_cols: bool = True, na
 def merge_rows(
     df: DataFrame,
     group_by: list[str | Column] | Column | str | int,
-    add_cols: Sequence[str] | None = QTYPE_COLS + RCODE_COLS,
+    sum_cols: Sequence[str] | None = QTYPE_COLS + RCODE_COLS,
     hll_merge_cols: Sequence[str] | None = HLL_SKETCH_COLS,
     avg_cols: Sequence[str] | None = None,
     other_aggs: Sequence[Column] | None = None,
@@ -49,14 +49,14 @@ def merge_rows(
     Parameters:
     - df: The input DataFrame.
     - group_by: Columns to group by.
-    - add_cols: Columns to sum.
+    - sum_cols: Columns to sum.
     - hll_merge_cols: Columns containing HyperLogLog sketches to merge using hll_merge.
     - avg_cols: Columns to average.
     - other_aggs: Other aggregation expressions.
     Returns:
     - A DataFrame with rows merged according to the specified aggregations.
     """
-    add_aggs = [F.sum(col).alias(col) for col in (add_cols or ())]
+    add_aggs = [F.sum(col).alias(col) for col in (sum_cols or ())]
     hll_aggs = [H.hll_merge(F.col(col)).alias(col) for col in (hll_merge_cols or ())]
     avg_aggs = [F.avg(col).alias(col) for col in (avg_cols or ())]
     return df.groupBy(group_by).agg(*add_aggs, *hll_aggs, *avg_aggs, *(other_aggs or ()))
