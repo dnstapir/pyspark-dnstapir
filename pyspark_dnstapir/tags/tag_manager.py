@@ -91,7 +91,7 @@ class TagManager:
     def post_tag(self, domain: str, tag: str, value: str | None) -> None:
         """Post a tag for a domain with an optional value."""
         path = f"/domains/{domain}/tags/{tag}"
-        self._post(path, json={"message": value})
+        self._post(path, json={"value": value})
 
 
 class TagManagerError(Exception):
