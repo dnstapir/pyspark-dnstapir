@@ -1,0 +1,37 @@
+# minimal version from https://github.com/dnstapir/core-integration-test to be able to run Tag Manager API tests
+
+networks:
+  core:
+    driver: bridge
+
+services:
+  nats:
+    image: nats:alpine3.22
+    working_dir: /work
+    restart: no
+    command: "--config nats.conf"
+    ports:
+      - "127.0.0.1:4222:4222/tcp"
+    volumes:
+      - ./nats/:/work:ro
+    networks:
+      - core
+    healthcheck:
+      test: ["CMD-SHELL", "busybox wget http://127.0.0.1:8222/healthz -O - | grep \"ok\""]
+      interval: 3s
+      timeout: 3s
+      retries: 3
+
+  tag-manager:
+    image: ${TAPIR_INTEGRATION_TAG_MANAGER_IMG:-ghcr.io/dnstapir/tag-manager:latest}
+    working_dir: /work
+    restart: no
+    depends_on:
+      nats:
+        condition: service_healthy
+    volumes:
+      - ./tag-manager/:/work:ro
+    networks:
+      - core
+    ports:
+      - "8080:8080"
