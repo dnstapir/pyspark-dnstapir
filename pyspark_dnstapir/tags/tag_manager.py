@@ -23,8 +23,15 @@ class TagManager:
         TagManagerResponseError: Raised when the response of the Tag Manager API is invalid or unexpected.
     """
 
-    def __init__(self, base_url: str, api_key: str):
-        self.client = httpx2.Client(base_url=base_url, headers={"X-API-Key": api_key})
+    def __init__(self, base_url: str, api_key: str | None):
+        """
+        Initialize the TagManager client.
+
+        Args:
+            base_url (str): The base URL of the Tag Manager API.
+            api_key (str | None): The API key for authentication, or None if the API requires no authentication.
+        """
+        self.client = httpx2.Client(base_url=base_url, headers=None if api_key is None else {"X-API-Key": api_key})
 
     def _get(self, path: str) -> dict[str, Any]:
         try:
