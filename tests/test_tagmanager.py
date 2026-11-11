@@ -28,6 +28,6 @@ def test_tag_manager():
 
 
 def test_tag_manager_404():
-    tm = TagManager(base_url="http://localhost:8080", api_key="TEST_KEY")
+    tm = TagManager(base_url="http://localhost:8080", api_key=None)
     with pytest.raises(TagManagerHTTPError):
         tm.get_value("nonexistent-domain.com", "non_existing_tag")
