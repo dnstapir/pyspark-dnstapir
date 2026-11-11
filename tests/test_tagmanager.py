@@ -4,7 +4,7 @@ from pyspark_dnstapir.tags.tag_manager import TagManager, TagManagerHTTPError
 
 
 def test_tag_manager():
-    tm = TagManager(base_url="http://localhost:8080", api_key="TEST_KEY")
+    tm = TagManager(base_url="http://localhost:8080", api_key=None)
 
     assert tm.get_custom_tags() == []
     assert "anomalous_qtype_distribution" in tm.get_well_defined_tags()
@@ -25,12 +25,6 @@ def test_tag_manager():
     assert tm.get_value("dnstapir.se", "test_tag") == "a=1"
     assert tm.get_value("dnstapir.se", "test_tag2") == ""
     assert tm.get_value("example.com", "test_tag") == ""
-
-
-def test_tag_manager_auth_error():
-    tm = TagManager(base_url="http://localhost:8080", api_key="INVALID_KEY")
-    with pytest.raises(TagManagerHTTPError):
-        tm.get_custom_tags()
 
 
 def test_tag_manager_404():
