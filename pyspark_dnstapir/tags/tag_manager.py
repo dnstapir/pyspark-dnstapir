@@ -81,7 +81,7 @@ class TagManager:
         return self._get_tags("well-defined")
 
     def get_value(self, domain: str, tag: str) -> str:
-        """Get the value of a tag on a domain."""
+        """Get the value of a tag on a domain. Raises a 404 if the requested tag does not exist."""
         path = f"/domains/{domain}/tags/{tag}"
         return self._get_key(path, "value")
 
