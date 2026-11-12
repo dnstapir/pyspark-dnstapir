@@ -1,7 +1,7 @@
 all:
 
 test:
-	uv run pytest --ruff --ruff-format
+	uv run ./tests/run_tests.sh --ruff --ruff-format
 
 lint:
 	uv run ruff check .

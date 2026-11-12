@@ -43,5 +43,10 @@ jobs:
         with:
           version: latest
           enable-cache: true
-      - name: Run pytest
-        run: uv run make test
+      - name: Run tests
+        run: make test
+      - name: Show container logs and stop containers on failure
+        if: failure()
+        run: |
+          docker compose -f test-deps/docker-compose.yaml logs
+          docker compose -f test-deps/docker-compose.yaml down
