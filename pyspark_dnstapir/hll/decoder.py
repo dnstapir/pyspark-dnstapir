@@ -16,7 +16,7 @@ class DecodedHLL:
     """
     Represents a decoded HyperLogLog structure and its metadata.
 
-    If the type is SPARSE or FULL, the `registers` field contains the decoded register values (in dense format),
+    If the type is SPARSE or FULL, the `registers` field contains the decoded register values (one byte per register),
     and `explicit_values` is None.
 
     If the type is EXPLICIT, the `explicit_values` field contains the decoded explicit values,
