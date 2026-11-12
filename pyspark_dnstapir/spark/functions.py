@@ -8,7 +8,7 @@ from . import stdhll as H
 
 QTYPE_COLS = ("a_count", "aaaa_count", "mx_count", "ns_count", "other_type_count", "non_in_count")
 RCODE_COLS = ("ok_count", "nx_count", "fail_count", "other_rcode_count")
-HLL_SKETCH_COLS = ("v4client_hll", "v6client_hll")
+HLL_SKETCH_COLS = ("v4clients_hll", "v6clients_hll")
 
 
 def add_total_query_count_column(df: DataFrame, from_rcode_cols: bool = True, name: str = "query_count") -> DataFrame:
