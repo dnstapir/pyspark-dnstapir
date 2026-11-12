@@ -1,0 +1,27 @@
+diff --git i/hll.go w/hll.go
+index 2b834b3..76767ca 100644
+--- i/hll.go
++++ w/hll.go
+@@ -122,6 +122,22 @@ func (h *Hll) Settings() Settings {
+ 	return h.settings.toExternal()
+ }
+
++func (h *Hll) GetRegister(n int) byte {
++	switch s := h.storage.(type) {
++	case sparseStorage:
++		return s[int32(n)]
++	case denseStorage:
++		return s.get(n, h.settings.regwidth)
++	default:
++		panic(fmt.Sprintf("cannot read registers from %T storage", s))
++	}
++}
++
++func (h *Hll) IsSparse() bool {
++	_, ok := h.storage.(sparseStorage)
++	return ok
++}
++
+ // AddRaw adds the observed value into the Hll.  The value is expected to have
+ // been hashed with a good hash function such as Murmur3 or xxHash.  If the
+ // value does not have sufficient entropy, then the resulting cardinality
