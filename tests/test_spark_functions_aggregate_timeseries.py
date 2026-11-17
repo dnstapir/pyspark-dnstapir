@@ -97,6 +97,53 @@ def test_aggregate_timeseries2(spark):
     assert dnstapirse == expected_dnstapirse
 
 
+def test_aggregate_timeseries_default_value(spark):
+    data = [
+        (D.date.fromisoformat("2026-10-01"), "se", "dnstapir", 0, 45, 5),
+        (D.date.fromisoformat("2026-10-01"), "se", "dnstapir", 2, 15, 15),
+        (D.date.fromisoformat("2026-10-01"), "se", "dnstapir", 5, 0, 9),
+        (D.date.fromisoformat("2026-10-01"), "se", "dnstapir", 18, 30, 7),
+        (D.date.fromisoformat("2026-10-02"), "se", "dnstapir", 14, 45, 8),
+        (D.date.fromisoformat("2026-10-02"), "se", "dnstapir", 20, 0, 12),
+    ]
+    random.Random(43).shuffle(data)
+
+    df = spark.createDataFrame(data, ["date", "label0", "label1", "hour", "minute", "query_count"])
+    df1 = aggregate_timeseries_into_list(
+        df,
+        group_by=["label0", "label1"],
+        value_column="query_count",
+        date_min=D.date.fromisoformat("2026-10-01"),
+        date_max=D.date.fromisoformat("2026-10-02"),
+        interval=15,
+        timeseries_out_column_name="query_counts",
+        default_value=-1,
+    )
+
+    result = df1.collect()
+    assert len(result) == 1
+    dnstapirse = result[0].asDict()
+    expected_dnstapirse = {
+        "label0": "se",
+        "label1": "dnstapir",
+        "query_counts": ([-1] * 3)
+        + [5]
+        + ([-1] * 5)
+        + [15]
+        + ([-1] * 10)
+        + [9]
+        + ([-1] * 53)
+        + [7]
+        + ([-1] * 80)
+        + [8]
+        + ([-1] * 20)
+        + [12]
+        + ([-1] * 15),
+    }
+
+    assert dnstapirse == expected_dnstapirse
+
+
 def test_aggregate_timeseries_errors(spark):
     data = [
         (D.date.fromisoformat("2026-10-01"), "se", "dnstapir", 0, 45, 5),

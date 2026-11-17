@@ -1,5 +1,6 @@
 import datetime as D
 from collections.abc import Sequence
+from typing import Any
 
 import pyspark.sql.functions as F
 from pyspark.sql import Column, DataFrame
@@ -71,10 +72,11 @@ def aggregate_timeseries_into_list(
     date_max: str | D.date,
     interval: int,
     timeseries_out_column_name: str,
+    default_value: Any = 0,
 ) -> DataFrame:
     """
     Aggregate time series from a 5-minute (or multiple-of-5-minute) histogram DataFrame into lists
-    ordered by date, hour, and minute. Bins that have no data will be filled with zeros.
+    ordered by date, hour, and minute. Bins that have no data will be filled with `default_value`.
 
     The input DataFrame is assumed to contain no duplicate values for the combination of date, hour, and minute
     within each group defined by group_by. Use merge_rows to combine duplicate rows before aggregation if necessary.
@@ -145,7 +147,7 @@ def aggregate_timeseries_into_list(
     max_index = (number_of_days * 1440 - 1) // interval
 
     """
-    Fill in missing indices in the time series with a default value of 0.
+    Fill in missing indices in the time series with `default_value`.
     The time series sequence is now ordered by the index.
     """
     df_with_items_filled = df_with_item_map.withColumn(
@@ -154,7 +156,7 @@ def aggregate_timeseries_into_list(
             F.sequence(F.lit(min_index), F.lit(max_index)),
             lambda i: F.struct(
                 i.alias("index"),
-                F.coalesce(F.element_at("_aggregate_timeseries_item_map", i), F.lit(0)).alias("value"),
+                F.coalesce(F.element_at("_aggregate_timeseries_item_map", i), F.lit(default_value)).alias("value"),
             ),
         ),
     )
