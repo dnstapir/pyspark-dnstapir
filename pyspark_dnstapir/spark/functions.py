@@ -1,5 +1,5 @@
 import datetime as D
-from collections.abc import Sequence
+from collections.abc import Callable, Sequence
 from typing import Any
 
 import pyspark.sql.functions as F
@@ -171,3 +171,45 @@ def aggregate_timeseries_into_list(
     ).drop("_aggregate_timeseries_index", "_aggregate_timeseries_item_map", "_aggregate_timeseries_items_filled")
 
     return df_with_timeseries
+
+
+def filter_by_aggregate(
+    df: DataFrame, group_by: list[str | Column] | Column | str | int, agg: Column, predicate: Callable[[Column], Column]
+) -> DataFrame:
+    """
+    Filter the DataFrame based on an aggregate condition, keeping the original rows.
+
+    Example: keep only domains with fewer than 1000 total NOERROR queries:
+
+        filter_by_aggregate(
+            df,
+            group_by="fqdn",
+            agg=F.sum("ok_count"),
+            predicate=lambda col: col < 1000
+        )
+
+    Example: keep only domains that have been queried in at least 3 creators:
+
+        filter_by_aggregate(
+            df,
+            group_by="fqdn",
+            agg=F.countDistinct("creator"),
+            predicate=lambda col: col >= 3
+        )
+
+    Parameters:
+        df: The input DataFrame.
+        group_by: The columns to group by.
+        agg: The aggregate column expression.
+        predicate: A function that takes the aggregate column and returns a boolean column.
+
+    Returns:
+        A DataFrame filtered based on the aggregate condition.
+    """
+    to_include = (
+        df.groupby(group_by)
+        .agg(agg.alias("_filter_by_aggregate"))
+        .filter(predicate(F.col("_filter_by_aggregate")))
+        .select(group_by)
+    )
+    return df.join(F.broadcast(to_include), on=group_by, how="left_semi")
