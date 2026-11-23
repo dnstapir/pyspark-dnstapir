@@ -1,6 +1,7 @@
 import pyspark.sql.functions as F
+from pyspark.sql import Row
 
-from pyspark_dnstapir.spark.functions import add_total_query_count_column, merge_rows
+from pyspark_dnstapir.spark.functions import add_total_query_count_column, filter_by_aggregate, merge_rows
 
 
 def test_total_query_count(spark):
@@ -132,3 +133,56 @@ def test_merge_rows(spark):
         "minute_product": 300,
     }
     assert dnstapirse == expected_dnstapirse
+
+
+def test_filter_by_aggregate(spark):
+    data = [
+        ("node1", "2026-10-01", 7, 35, "com", "example", 5),
+        ("node1", "2026-10-01", 7, 40, "com", "example", 3),
+        ("node1", "2026-10-01", 8, 15, "se", "dnstapir", 20),
+        ("node1", "2026-10-01", 8, 20, "se", "dnstapir", 37),
+        ("node2", "2026-10-01", 7, 35, "com", "example", 1),
+        ("node2", "2026-10-01", 7, 40, "com", "example", 2),
+        ("node2", "2026-10-01", 8, 15, "se", "dnstapir", 45),
+        ("node2", "2026-10-01", 8, 20, "se", "dnstapir", 19),
+        ("node3", "2026-10-01", 7, 35, "com", "example", 4),
+        ("node3", "2026-10-01", 7, 40, "com", "example", 2),
+    ]
+
+    df = spark.createDataFrame(data, ["creator", "date", "hour", "minute", "label0", "label1", "ok_count"])
+
+    result = (
+        filter_by_aggregate(df, group_by=["label0", "label1"], agg=F.sum("ok_count"), predicate=lambda col: col > 100)
+        .sort("creator", "label0", "label1", "date", "hour", "minute")
+        .collect()
+    )
+    assert [r.asDict() for r in result] == [
+        Row(
+            creator="node1", date="2026-10-01", hour=8, minute=15, label0="se", label1="dnstapir", ok_count=20
+        ).asDict(),
+        Row(
+            creator="node1", date="2026-10-01", hour=8, minute=20, label0="se", label1="dnstapir", ok_count=37
+        ).asDict(),
+        Row(
+            creator="node2", date="2026-10-01", hour=8, minute=15, label0="se", label1="dnstapir", ok_count=45
+        ).asDict(),
+        Row(
+            creator="node2", date="2026-10-01", hour=8, minute=20, label0="se", label1="dnstapir", ok_count=19
+        ).asDict(),
+    ]
+
+    result2 = (
+        filter_by_aggregate(
+            df, group_by=["label0", "label1"], agg=F.countDistinct("creator"), predicate=lambda col: col >= 3
+        )
+        .sort("creator", "label0", "label1", "date", "hour", "minute")
+        .collect()
+    )
+    assert [r.asDict() for r in result2] == [
+        Row(creator="node1", date="2026-10-01", hour=7, minute=35, label0="com", label1="example", ok_count=5).asDict(),
+        Row(creator="node1", date="2026-10-01", hour=7, minute=40, label0="com", label1="example", ok_count=3).asDict(),
+        Row(creator="node2", date="2026-10-01", hour=7, minute=35, label0="com", label1="example", ok_count=1).asDict(),
+        Row(creator="node2", date="2026-10-01", hour=7, minute=40, label0="com", label1="example", ok_count=2).asDict(),
+        Row(creator="node3", date="2026-10-01", hour=7, minute=35, label0="com", label1="example", ok_count=4).asDict(),
+        Row(creator="node3", date="2026-10-01", hour=7, minute=40, label0="com", label1="example", ok_count=2).asDict(),
+    ]
