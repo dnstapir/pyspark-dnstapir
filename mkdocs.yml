@@ -1,0 +1,25 @@
+site_name: pyspark_dnstapir Documentation
+
+theme:
+  name: readthedocs
+
+plugins:
+  - search
+
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            show_source: false
+            show_root_heading: false
+            show_signature_annotations: true
+            show_root_toc_entry: false
+            show_submodules: false
+            members: true
+
+nav:
+  - Home: index.md
+  - pyspark_dnstapir.dns: dns.md
+  - pyspark_dnstapir.hll: hll.md
+  - pyspark_dnstapir.spark: spark.md
+  - pyspark_dnstapir.tags: tags.md
