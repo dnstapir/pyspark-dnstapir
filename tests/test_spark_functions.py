@@ -1,7 +1,8 @@
 import pyspark.sql.functions as F
+import pytest
 from pyspark.sql import Row
 
-from pyspark_dnstapir.spark.functions import add_total_query_count_column, filter_by_aggregate, merge_rows
+from pyspark_dnstapir.spark.functions import add_total_query_count_column, filter_by_aggregate, map_values, merge_rows
 
 
 def test_total_query_count(spark):
@@ -186,3 +187,66 @@ def test_filter_by_aggregate(spark):
         Row(creator="node3", date="2026-10-01", hour=7, minute=35, label0="com", label1="example", ok_count=4).asDict(),
         Row(creator="node3", date="2026-10-01", hour=7, minute=40, label0="com", label1="example", ok_count=2).asDict(),
     ]
+
+
+def test_map_values(spark):
+    mapping = {
+        "node1": "ISP1",
+        "node2": "ISP1",
+        "node3": "ISP2",
+        "node4": "ISP3",
+    }
+
+    data = [
+        ("node1", 7, 45),
+        ("node2", 7, 45),
+        ("node3", 7, 45),
+        ("node4", 7, 45),
+        ("node1", 7, 50),
+        ("node4", 7, 50),
+        ("node3", 7, 50),
+        ("node2", 7, 50),
+        ("node5", 7, 50),
+    ]
+    df = spark.createDataFrame(data, ["creator", "hour", "minute"])
+
+    df1 = df.withColumn("provider", map_values("creator", mapping, default_behavior="null"))
+    result1 = df1.collect()
+    assert result1[0].provider == "ISP1"
+    assert result1[1].provider == "ISP1"
+    assert result1[2].provider == "ISP2"
+    assert result1[3].provider == "ISP3"
+    assert result1[4].provider == "ISP1"
+    assert result1[5].provider == "ISP3"
+    assert result1[6].provider == "ISP2"
+    assert result1[7].provider == "ISP1"
+    assert result1[8].provider is None
+
+    df2 = df.withColumn("provider", map_values("creator", mapping, default_behavior="original"))
+    result2 = df2.collect()
+    assert result2[0].provider == "ISP1"
+    assert result2[1].provider == "ISP1"
+    assert result2[2].provider == "ISP2"
+    assert result2[3].provider == "ISP3"
+    assert result2[4].provider == "ISP1"
+    assert result2[5].provider == "ISP3"
+    assert result2[6].provider == "ISP2"
+    assert result2[7].provider == "ISP1"
+    assert result2[8].provider == "node5"
+
+    df3 = df.withColumn(
+        "provider", map_values("creator", mapping, default_behavior="default_value", default_value="other")
+    )
+    result3 = df3.collect()
+    assert result3[0].provider == "ISP1"
+    assert result3[1].provider == "ISP1"
+    assert result3[2].provider == "ISP2"
+    assert result3[3].provider == "ISP3"
+    assert result3[4].provider == "ISP1"
+    assert result3[5].provider == "ISP3"
+    assert result3[6].provider == "ISP2"
+    assert result3[7].provider == "ISP1"
+    assert result3[8].provider == "other"
+
+    with pytest.raises(ValueError):
+        df.withColumn("provider", map_values("creator", mapping, default_behavior="invalid_behavior"))
