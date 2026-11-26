@@ -1,6 +1,7 @@
 import datetime as D
 from collections.abc import Callable, Sequence
-from typing import Any
+from itertools import chain
+from typing import Any, Literal
 
 import pyspark.sql.functions as F
 from pyspark.sql import Column, DataFrame
@@ -213,3 +214,48 @@ def filter_by_aggregate(
         .select(group_by)
     )
     return df.join(F.broadcast(to_include), on=group_by, how="left_semi")
+
+
+def map_values(
+    col: str | Column,
+    mapping: dict,
+    default_behavior: Literal["null", "original", "default_value"] = "null",
+    default_value: Any = None,
+) -> Column:
+    """
+    Map values in a column based on a mapping dictionary. E.g. useful for mapping creators to providers:
+
+    ```
+    df.withColumn(
+        "provider",
+        map_values("creator", mapping={"node1": "ISP1", "node2": "ISP1", "node3": "ISP2"})
+    )
+    ```
+
+    Parameters:
+        col: The column to perform the lookup on.
+        mapping: A dictionary mapping original values to new values.
+        default_behavior: What to do if a value is not found in the mapping. Options are:
+            * "null" - return NULL (default)
+            * "original" - return the original value
+            * "default_value" - return the value specified in `default_value`
+        default_value: The value to return if a value is not found in the mapping and
+            `default_behavior` is "default_value".
+
+    Returns:
+        A Column with the mapped values.
+    """
+
+    if not isinstance(col, Column):
+        col = F.col(col)
+
+    spark_map = F.create_map([F.lit(x) for x in chain(*mapping.items())])
+    mapped_col = spark_map[col]
+    if default_behavior == "null":
+        return mapped_col
+    elif default_behavior == "original":
+        return F.coalesce(mapped_col, col)
+    elif default_behavior == "default_value":
+        return F.coalesce(mapped_col, F.lit(default_value))
+    else:
+        raise ValueError(f"Invalid default_behavior: {default_behavior}")
