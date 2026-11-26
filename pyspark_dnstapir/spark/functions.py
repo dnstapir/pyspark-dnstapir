@@ -4,7 +4,7 @@ from itertools import chain
 from typing import Any, Literal
 
 import pyspark.sql.functions as F
-from pyspark.sql import Column, DataFrame
+from pyspark.sql import Column, DataFrame, Window
 
 from . import stdhll as H
 
@@ -259,3 +259,23 @@ def map_values(
         return F.coalesce(mapped_col, F.lit(default_value))
     else:
         raise ValueError(f"Invalid default_behavior: {default_behavior}")
+
+
+def modified_z_score(partition_by: list[str | Column] | Column | str, value_col: str | Column) -> Column:
+    """
+    Compute the modified Z-score (0.6745 * (x - median) / MAD) for a value column within partitions.
+
+    Parameters:
+        partition_by: The columns to partition by.
+        value_col: The column for which to compute the modified Z-score.
+
+    Returns:
+        A Column containing the modified Z-score.
+    """
+    if not isinstance(value_col, Column):
+        value_col = F.col(value_col)
+
+    w = Window.partitionBy(partition_by)
+    median = F.median(value_col).over(w)
+    mad = F.median(F.abs(value_col - median)).over(w)
+    return 0.6745 * (value_col - median) / mad
