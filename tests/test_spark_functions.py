@@ -2,7 +2,13 @@ import pyspark.sql.functions as F
 import pytest
 from pyspark.sql import Row
 
-from pyspark_dnstapir.spark.functions import add_total_query_count_column, filter_by_aggregate, map_values, merge_rows
+from pyspark_dnstapir.spark.functions import (
+    add_total_query_count_column,
+    filter_by_aggregate,
+    map_values,
+    merge_rows,
+    modified_z_score,
+)
 
 
 def test_total_query_count(spark):
@@ -250,3 +256,51 @@ def test_map_values(spark):
 
     with pytest.raises(ValueError):
         df.withColumn("provider", map_values("creator", mapping, default_behavior="invalid_behavior"))
+
+
+def test_modified_z_score(spark):
+    data = [
+        (7, 35, "com", "example", 5),
+        (7, 40, "com", "example", 3),
+        (8, 15, "se", "dnstapir", 20),
+        (8, 20, "se", "dnstapir", 37),
+        (7, 45, "com", "example", 1),
+        (7, 50, "com", "example", 2),
+        (8, 25, "se", "dnstapir", 45),
+        (8, 30, "se", "dnstapir", 19),
+        (7, 55, "com", "example", 4),
+        (8, 0, "com", "example", 2),
+        (8, 35, "se", "dnstapir", 9),
+        (9, 0, "test", "mad-0", 5),
+    ]
+
+    df = spark.createDataFrame(data, ["hour", "minute", "label0", "label1", "ok_count"])
+    m_z = modified_z_score(partition_by=["label0", "label1"], value_col="ok_count")
+    result = (
+        df.withColumn("m_z", m_z)
+        .sort(
+            "label0",
+            "label1",
+            "hour",
+            "minute",
+        )
+        .collect()
+    )
+
+    assert result[0].hour == 7 and result[0].minute == 35 and result[0].label1 == "example"
+    assert result[-1].hour == 9 and result[-1].minute == 0 and result[-1].label1 == "mad-0"
+
+    assert result[0].m_z == pytest.approx(1.68625)
+    assert result[1].m_z == pytest.approx(0.33725)
+    assert result[2].m_z == pytest.approx(-1.01175)
+    assert result[3].m_z == pytest.approx(-0.33725)
+    assert result[4].m_z == pytest.approx(1.01175)
+    assert result[5].m_z == pytest.approx(-0.33725)
+
+    assert result[6].m_z == pytest.approx(0.0)
+    assert result[7].m_z == pytest.approx(1.0424090909090908)
+    assert result[8].m_z == pytest.approx(1.5329545454545455)
+    assert result[9].m_z == pytest.approx(-0.06131818181818182)
+    assert result[10].m_z == pytest.approx(-0.6745)
+
+    assert result[11].m_z is None
