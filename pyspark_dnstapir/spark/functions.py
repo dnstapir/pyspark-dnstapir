@@ -18,12 +18,12 @@ def add_total_query_count_column(df: DataFrame, from_rcode_cols: bool = True, na
     Add a column to the DataFrame representing the total query count.
 
     Parameters:
-    - df: The input DataFrame.
-    - from_rcode_cols: If True, sum the RCODE_COLS; otherwise, sum the QTYPE_COLS. \
-        The result should be the same either way, but this option allows working with a reduced DataFrame.
-    - name: The name of the new column to add.
+        df: The input DataFrame.
+        from_rcode_cols: If True, sum the RCODE_COLS; otherwise, sum the QTYPE_COLS. \
+          The result should be the same either way, but this option allows working with a reduced DataFrame.
+        name: The name of the new column to add.
     Returns:
-    - A DataFrame with the new query count column added.
+        A DataFrame with the new query count column added.
     """
     query_count_col = sum(F.col(col) for col in (RCODE_COLS if from_rcode_cols else QTYPE_COLS))
     return df.withColumn(name, query_count_col)
@@ -50,14 +50,14 @@ def merge_rows(
     v{4,6}clients_avg columns is more suitable.
 
     Parameters:
-    - df: The input DataFrame.
-    - group_by: Columns to group by.
-    - sum_cols: Columns to sum.
-    - hll_merge_cols: Columns containing HyperLogLog sketches to merge using hll_merge.
-    - avg_cols: Columns to average.
-    - other_aggs: Other aggregation expressions.
+        df: The input DataFrame.
+        group_by: Columns to group by.
+        sum_cols: Columns to sum.
+        hll_merge_cols: Columns containing HyperLogLog sketches to merge using hll_merge.
+        avg_cols: Columns to average.
+        other_aggs: Other aggregation expressions.
     Returns:
-    - A DataFrame with rows merged according to the specified aggregations.
+        A DataFrame with rows merged according to the specified aggregations.
     """
     add_aggs = [F.sum(col).alias(col) for col in (sum_cols or ())]
     hll_aggs = [H.hll_merge(F.col(col)).alias(col) for col in (hll_merge_cols or ())]
@@ -91,16 +91,17 @@ def aggregate_timeseries_into_list(
     The input DataFrame may contain rows outside the specified date range, these will be ignored.
 
     Parameters:
-    - df: The input DataFrame.
-    - group_by: Columns to group by.
-    - value_column: The column containing the values to aggregate into a list.
-    - date_min: The minimum date to include in the aggregation.
-    - date_max: The maximum date to include in the aggregation.
-    - interval: The time interval in minutes of the input DataFrame.
-    - timeseries_out_column_name: The name of the output column containing the aggregated time series.
+        df: The input DataFrame.
+        group_by: Columns to group by.
+        value_column: The column containing the values to aggregate into a list.
+        date_min: The minimum date to include in the aggregation.
+        date_max: The maximum date to include in the aggregation.
+        interval: The time interval in minutes of the input DataFrame.
+        timeseries_out_column_name: The name of the output column containing the aggregated time series.
+        default_value: The value to use for bins with no data.
 
     Returns:
-    - A DataFrame with the aggregated time series as lists.
+        A DataFrame with the aggregated time series as lists.
     """
     if isinstance(date_min, str):
         date_min = D.date.fromisoformat(date_min)
